@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D2 Report Viewer</title>
+<style>
+  /* Your CSS styles here */
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #FFFFFF;
+    font-size: 16px;
+  }
+  .container {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .container > div {
+    margin: 10px;
+    flex: 1;
+    min-width: 300px;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  th, td {
+    border: 1px solid black;
+    padding: 8px;
+    text-align: center;
+  }
+  th {
+    background-color: #c8c8c8;
+    font-size: 14px;
+  }
+  .footer {
+    text-align: left;
+    background-color: #FFFFFF;
+  }
+
+  .upload-container {
+    position: relative;
+  }
+
+  .upload-container input {
+    border: 0px solid #92b0b3;
+    background: #f1f1f1;
+    /* outline: 2px dashed #92b0b3;  */
+    outline-offset: -10px;
+    padding: 100px 0px 100px;
+    text-align: center !important;
+    width: 100%;
+  }
+
+  .upload-container input:hover {
+    background: #ddd;
+  }
+
+  .upload-container:before {
+    position: center;
+    /* bottom: 50px; */
+    /* left: 155px; */
+    /* content: " Drag and Drop files here "; */
+    color: #464646;
+    font-weight: 900;
+  }
+
+  .upload-btn {
+    
+    margin-left: 300px;
+    padding: 7px 20px;
+  }
+</style>
+
+ 
+
+</head>
+<body>
+  <h1>D2 Report Viewer</h1>
+<!-- <input type="file" id="fileInput"> -->
+<div class="upload-container" id="drop">
+  <input type="file" id="fileInput" accept=".html" />
+</div>
+<div id="h1Container" style="margin:15%; margin-top: 1px; margin-bottom: 1px;"></div>
+<div id="output" style="margin:15%; margin-top: 5px;"></div>
+
+<script>
+
+/* v1 - Working. Need to add code for displaying h1
+document.getElementById('fileInput').addEventListener('change', function(event) {
+  var file = event.target.files[0];
+  var reader = new FileReader();
+  
+  reader.onload = function(event) {
+    var content = event.target.result;
+
+    var doc = new DOMParser().parseFromString(content, 'text/html');
+
+    
+
+
+    var output = document.getElementById('output');
+    output.innerHTML = '';
+
+    // Find all tables
+    var tables = doc.querySelectorAll('table');
+    var firstTable = tables[0];
+    var secondTable = tables[1];
+    var thirdTable = tables[2];
+    var fourthTable = tables[3];
+
+    // Strip rows from tables
+    stripRowsFromTables(tables);
+
+    // Rename rows in tables
+    renameCellsInTables(tables);
+
+    // Append tables in desired order
+
+    var divContainer = document.createElement('div');
+    divContainer.style.display = 'flex';
+    divContainer.appendChild(secondTable);
+    divContainer.appendChild(fourthTable);
+    output.appendChild(divContainer);
+    output.appendChild(thirdTable);
+    output.appendChild(firstTable);
+  };
+  
+  reader.readAsText(file);
+}); */
+
+//v2 - displays h1, strips out unnecessary text
+document.getElementById('fileInput').addEventListener('change', function(event) {
+  var file = event.target.files[0];
+  var reader = new FileReader();
+  
+  reader.onload = function(event) {
+    var content = event.target.result;
+
+    var doc = new DOMParser().parseFromString(content, 'text/html');
+
+    // Extract <h1> element
+    var h1Element = doc.querySelector('h1');
+    var h1Text = h1Element ? h1Element.textContent.trim() : '';
+
+    // Display <h1> element
+    displayH1(h1Text);
+
+    var output = document.getElementById('output');
+    output.innerHTML = '';
+
+    // Create a container for the tables
+    var tablesContainer = document.createElement('div');
+
+    // Find all tables
+    var tables = doc.querySelectorAll('table');
+    var firstTable = tables[0];
+    var secondTable = tables[1];
+    var thirdTable = tables[2];
+    var fourthTable = tables[3];
+
+    // Strip rows from tables
+    stripRowsFromTables(tables);
+
+    // Rename rows in tables
+    renameCellsInTables(tables);
+
+    var divContainer = document.createElement('div');
+    divContainer.style.display = 'flex';
+    divContainer.appendChild(secondTable);
+    divContainer.appendChild(fourthTable);
+    output.appendChild(divContainer);
+    output.appendChild(thirdTable);
+    output.appendChild(firstTable);
+  };
+  
+  reader.readAsText(file);
+});
+
+/*function displayH1(text) {
+  var h1Container = document.getElementById('h1Container');
+  h1Container.innerHTML = "<h1>: " + text;
+}*/
+
+function displayH1(text) {
+  var h1Container = document.getElementById('h1Container');
+
+  // Remove specific strings from <h1> content
+  var filteredText = removeDateAndTime(text);
+
+  // Remove other specified strings if needed
+  filteredText = removeStrings(filteredText, [
+    'Rigging Report for Array : ', 
+    '_-_',
+    '-',
+    ': ',
+    'Linked'
+  ]);
+
+  // Display the modified <h1> content
+  h1Container.innerHTML = "<h1>: " + filteredText.trim();
+}
+
+function removeDateAndTime(text) {
+  // Regular expression to match date and time patterns
+  var dateRegex = /\d{1,2}-[A-Za-z]{3}-\d{4}\s+\d{1,2}:\d{2}:\d{2}/;
+  return text.replace(dateRegex, '').trim();
+}
+
+function removeStrings(text, stringsToRemove) {
+  // Iterate over each string to remove
+  stringsToRemove.forEach(function(stringToRemove) {
+    // Create a regular expression to match the string to remove
+    var regex = new RegExp(escapeRegExp(stringToRemove), 'gi');
+    // Remove the matched string from the text
+    text = text.replace(regex, '');
+  });
+  return text.trim();
+}
+
+// Function to escape special characters in a string to be used in a regular expression
+function escapeRegExp(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+
+function stripRowsFromTables(tables) {
+    // Keywords to remove
+    var keywords = ["aiming", "nearest aim", "mounting", "loading", "environment", "eq", "bottom ang", "method", "x dist", "BGVC1 Status", "DIN18800 Status", "Temperature", "Rel Humidity", "SPL @ ref", "build", "created", "current"];
+
+    // Iterate over each table
+    tables.forEach(function(table) {
+        // Iterate over each row in the table
+        var rows = table.querySelectorAll('tr');
+        rows.forEach(function(row) {
+            // Check each cell in the row for the keywords
+            var cells = row.querySelectorAll('td');
+            cells.forEach(function(cell) {
+                var text = cell.textContent.toLowerCase();
+                // If any keyword is found, remove the row
+                keywords.forEach(function(keyword) {
+                    if (text.includes(keyword.toLowerCase())) {
+                        row.remove();
+                    }
+                });
+            });
+        });
+    });
+}
+
+function renameCellsInTables(tables) {
+    // Mapping of old row names to new row names
+    var rowMappings = {
+        "Design Aim": "Frame Angle",
+        "Total Mass": "Total Load",
+        "Height": "Trim - Top",
+        "Nearest Hole": "Single Point Pickup",
+        "ang": "Splay Angle",
+        "Aim": "GRID - 0.5",
+        "Read Load": "Rear Load"
+        // Add more mappings here if needed
+    };
+
+    // Iterate over each table
+    tables.forEach(function(table) {
+        console.log("Processing table...");
+
+        // Find all rows in the table body
+        var tbodyRows = table.querySelectorAll('tbody tr');
+
+        // Variable to keep track of whether we've found the "Height" row in tbody
+        var foundOriginalHeightRowInTbody = false;
+
+        // Iterate over each row in the table body
+        tbodyRows.forEach(function(row) {
+            // Find all cells in the row
+            var cells = row.querySelectorAll('th, td');
+
+            // Iterate over each cell in the row
+            cells.forEach(function(cell) {
+                // Get the text content of the cell
+                var cellText = cell.textContent.trim();
+
+                console.log("Cell text:", cellText);
+
+                // Check if the cell text matches any of the old row names
+                if (rowMappings.hasOwnProperty(cellText)) {
+                    console.log("Found matching row name:", cellText);
+
+                    // If so, update the text content with the corresponding new row name
+                    cell.textContent = rowMappings[cellText];
+                    console.log("Updated cell content to:", cell.textContent);
+                }
+
+                // Check if the current cell text is "Height" and it's in tbody
+                if (cellText === "Height" && !foundOriginalHeightRowInTbody) {
+                    // Set the flag to indicate that we've found the original "Height" row in tbody
+                    foundOriginalHeightRowInTbody = true;
+
+                    // Insert a new row below the original "Height" row
+                    var newRow = document.createElement('tr');
+                    var newHeaderCell = document.createElement('td');
+                    newHeaderCell.textContent = "Trim - Bottom";
+                    var newDataCell = document.createElement('td');
+                    newDataCell.textContent = ""; // Add the content of the cell if needed
+                    newRow.appendChild(newHeaderCell);
+                    newRow.appendChild(newDataCell);
+                    // Use row.insertAdjacentElement to insert a new row below the "Height" row
+                    row.insertAdjacentElement('afterend', newRow);
+                    console.log("Inserted row below original 'Height' row in tbody.");
+                }
+            });
+        });
+
+        // If the "Height" row is not found in tbody, we look for it in thead
+        if (!foundOriginalHeightRowInTbody) {
+            // Find all rows in the table header
+            var theadRows = table.querySelectorAll('thead tr');
+
+            // Iterate over each row in the table header
+            theadRows.forEach(function(row) {
+                // Find all cells in the row
+                var cells = row.querySelectorAll('th, td');
+
+                // Iterate over each cell in the row
+                cells.forEach(function(cell) {
+                    // Get the text content of the cell
+                    var cellText = cell.textContent.trim();
+
+                    console.log("Cell text in thead:", cellText);
+
+                    // Check if the cell text matches any of the old row names
+                    if (rowMappings.hasOwnProperty(cellText)) {
+                        console.log("Found matching row name in thead:", cellText);
+
+                        // If so, update the text content with the corresponding new row name
+                        cell.textContent = rowMappings[cellText];
+                        console.log("Updated cell content in thead to:", cell.textContent);
+                    }
+                });
+            });
+        }
+
+        // Move the "Lift" row to the top of the Properties table
+        moveLiftRowToTop(table);
+    });
+}
+
+function moveLiftRowToTop(table) {
+    // Find all rows in the table body
+    var tbodyRows = table.querySelectorAll('tbody tr');
+    var liftRow = null;
+
+    // Iterate over each row in the table body
+    tbodyRows.forEach(function(row) {
+        // Find all cells in the row
+        var cells = row.querySelectorAll('th, td');
+
+        // Iterate over each cell in the row
+        cells.forEach(function(cell) {
+            // Get the text content of the cell
+            var cellText = cell.textContent.trim();
+
+            // Check if the current row is the "Lift" row
+            if (cellText === "Lift") {
+                // Store the reference to the "Lift" row
+                liftRow = row;
+            }
+        });
+    });
+
+    // If the "Lift" row is found, move it to the top of the table
+    if (liftRow) {
+        // Remove the "Lift" row from its current position
+        liftRow.parentNode.removeChild(liftRow);
+        // Insert the "Lift" row at the beginning of the table body
+        table.querySelector('tbody').insertBefore(liftRow, table.querySelector('tbody').firstChild);
+    }
+}
+
+/*function renameRowsInSplayTable(table) {
+    // Find the table caption
+    var caption = table.querySelector('caption');
+    if (!caption || caption.textContent.trim() !== "Splay") return;
+
+    // Find all cells containing the text "ang" in the table
+    var cells = table.querySelectorAll('td, th');
+    cells.forEach(function(cell) {
+        // Get the text content of the cell
+        var cellText = cell.textContent.trim();
+
+        // Check if the cell text contains "ang"
+        if (cellText === "ang") {
+            // If so, update the text content with "Splay Angle"
+            cell.textContent = "Splay Angle";
+        }
+    });
+}*/
+
+
+</script>
+</body>
+</html>
